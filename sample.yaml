@@ -1,0 +1,62 @@
+pool:
+  vmImage: 'windows-latest'
+
+ 
+ 
+ stages:
+  - stage: CreateTerraformRGStorageAccandContainerdev
+    jobs:
+      - job: CreateTerraformResourceGroupfortfstatedev
+        continueOnError: false
+        timeoutInMinutes: '30'
+        
+        steps:
+          - checkout: self
+            submodules: true
+          - task: AzureCLI@2
+            inputs:
+              azureSubscription: 'CFT-RM-DEV'
+              scriptType: 'ps'
+              scriptLocation: 'inlineScript'
+              inlineScript: |
+                az group create --location uksouth --resource-group CRBRIC-TERRAFORM-D-RGRP --tags 'AppID=005132'
+              powerShellErrorActionPreference: 'continue'
+            
+  - task: TerraformTaskV3@3
+    inputs:
+      provider: 'azurerm'
+      command: 'init'
+      commandOptions: '-lock=false'
+      backendServiceArm: ${{ parameters.azuresub }}
+      backendAzureRmResourceGroupName: '${{ parameters.terraformrgname}}'
+      backendAzureRmStorageAccountName: '${{ parameters.terraformstoragename}}'
+      backendAzureRmContainerName: '${{ parameters.backendcontainer}}'
+      backendAzureRmKey: 'terraform.tfstate'
+
+  - task: TerraformTaskV3@3
+    inputs:
+      provider: 'azurerm'
+      command: 'validate'
+
+  - task: TerraformTaskV3@3
+    inputs:
+      provider: 'azurerm'
+      command: 'plan'
+      commandOptions: '-lock=false'
+      environmentServiceNameAzureRM: ${{ parameters.azuresub }}
+
+  - task: TerraformTaskV3@3
+    inputs:
+      provider: 'azurerm'
+      command: 'apply'
+      commandOptions: '-auto-approve'
+      environmentServiceNameAzureRM: ${{ parameters.azuresub }}
+
+  - task: AzurePowerShell@5
+    inputs:
+      azureSubscription: ${{ parameters.azuresub }}
+      ScriptType: 'InlineScript'
+      Inline: |
+        $ip = Invoke-RestMethod http://ipinfo.io/json | Select -exp ip
+        Remove-AzStorageAccountNetworkRule -ResourceGroupName "${{ parameters.terraformrgname}}" -Name "${{ parameters.terraformstoragename}}" -IPAddressOrRange $ip
+      preferredAzurePowerShellVersion: '3.1.0'
