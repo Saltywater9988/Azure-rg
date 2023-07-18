@@ -1,0 +1,160 @@
+
+ pool:
+  vmImage: 'windows-latest'
+
+ variables:
+ - name: 'Devjobrun'
+   value: true
+
+ - name: 'Labjobrun'
+   value: false
+
+ - name: 'Prodjobrun'
+   value: false
+
+ - name: 'IatDocrun'
+   value: true
+
+#  - name: 'Qajobrun'
+#    value: true
+ 
+ stages:
+  - stage: CreateTerraformRGStorageAccandContainerdev
+    condition: eq(variables['Devjobrun'], 'true')
+    jobs:
+      - job: CreateTerraformResourceGroupfortfstatedev
+        continueOnError: false
+        timeoutInMinutes: '30'
+        
+        steps:
+          - checkout: self
+            submodules: true
+          - task: AzureCLI@2
+            inputs:
+              azureSubscription: 'CFT-RM-DEV'
+              scriptType: 'ps'
+              scriptLocation: 'inlineScript'
+              inlineScript: |
+                az group create --location uksouth --resource-group CRBRIC-TERRAFORM-D-RGRP --tags 'AppID=005132'
+              powerShellErrorActionPreference: 'continue'
+            
+          - task: AzureResourceManagerTemplateDeployment@3
+            inputs:
+                deploymentScope: 'Resource Group'
+                azureResourceManagerConnection: 'CFT-RM-DEV'
+                subscriptionId: 'f2330bbc-2e83-44f9-8b1b-dad4e6734872'
+                action: 'Create Or Update Resource Group'
+                resourceGroupName: 'CRBRIC-TERRAFORM-D-RGRP'
+                location: 'UK South'
+                templateLocation: 'Linked artifact'
+                csmFile: 'Terraform-RG-ST-Con/Terraformcontainer/storagecontainertemplatedevdoc.json'
+                csmParametersFile: 'Terraform-RG-ST-Con/Terraformcontainer/storagecontainerparametersdevdoc.json'
+                deploymentMode: 'Incremental'
+                displayName: Add Terraform Storage Container for tfstate files
+ #-------------------------------------------Stage for Production ClientPortal ------------------------------------------------- 
+
+  - stage: CreateTerraformRGStorageAccandContainerPrd
+    condition: eq(variables['Prodjobrun'], 'true')
+    jobs:
+      - job: CreateTerraformResourceGroupfortfstatePrd
+        continueOnError: false
+        timeoutInMinutes: '30'
+        steps:
+          - checkout: self
+            submodules: true
+          - task: AzureCLI@2
+            inputs:
+              azureSubscription: 'CFT-RM-PROD'
+              scriptType: 'ps'
+              scriptLocation: 'inlineScript'
+              inlineScript: |
+                az group create --location uksouth --resource-group TERRAFORM-PRD-RG --tags 'AppID=005132'
+                # az storage account create -n pwrgtest01st01 -g pwrgtest01 --default-action Deny --public-network-access Enabled -l ukwest --sku Standard_RAGRS --tags 'AppID=005132' --https-only true
+                # az storage account network-rule add -g pwrgtest01 --account-name pwrgtest01st01 --ip-address 158.82.1.0/24
+              powerShellErrorActionPreference: 'continue'
+            
+          - task: AzureResourceManagerTemplateDeployment@3
+            inputs:
+                deploymentScope: 'Resource Group'
+                azureResourceManagerConnection: 'CFT-RM-PROD'
+                subscriptionId: '78eeb49e-9204-4c8e-9cfa-eef876706eb8'
+                action: 'Create Or Update Resource Group'
+                resourceGroupName: 'TERRAFORM-PRD-RG'
+                location: 'UK South'
+                templateLocation: 'Linked artifact'
+                csmFile: 'Terraform-RG-ST-Con/Terraformcontainer/storagecontainertemplateprd.json'
+                csmParametersFile: Terraform-RG-ST-Con'/Terraformcontainer/storagecontainerparametersprd.json'
+                deploymentMode: 'Incremental'
+                displayName: Add Terraform Storage Container for tfstate files
+
+
+ #-------------------------------------------Stage for Production Networks/Platform/Docservices ------------------------------------------------- 
+
+  - stage: CreateTerraformRGStorageAccandContainerprod
+    condition: eq(variables['IatDocrun'], 'true')
+    jobs:
+      - job: CreateTerraformResourceGroupfortfstateprod
+        continueOnError: false
+        timeoutInMinutes: '30'
+        
+        steps:
+          - checkout: self
+            submodules: true
+          - task: AzureCLI@2
+            inputs:
+              azureSubscription: 'CFT-RM-PROD'
+              scriptType: 'ps'
+              scriptLocation: 'inlineScript'
+              inlineScript: |
+                az group create --location uksouth --resource-group CRBRIC-TERRAFORM-P-RGRP --tags 'AppID=005132'
+              powerShellErrorActionPreference: 'continue'
+            
+          - task: AzureResourceManagerTemplateDeployment@3
+            inputs:
+                deploymentScope: 'Resource Group'
+                azureResourceManagerConnection: 'CFT-RM-PROD'
+                subscriptionId: '78eeb49e-9204-4c8e-9cfa-eef876706eb8'
+                action: 'Create Or Update Resource Group'
+                resourceGroupName: 'CRBRIC-TERRAFORM-P-RGRP'
+                location: 'UK South'
+                templateLocation: 'Linked artifact'
+                csmFile: 'Terraform-RG-ST-Con/Terraformcontainer/storagecontainertemplateiatdoc.json'
+                csmParametersFile: 'Terraform-RG-ST-Con/Terraformcontainer/storagecontainerparametersiatdoc.json'
+                deploymentMode: 'Incremental'
+                displayName: Add Terraform Storage Container for tfstate files
+
+#-------------------------------------------Stage for Lab ------------------------------------------------- 
+
+  - stage: CreateTerraformRGStorageAccandContainerlab
+    condition: eq(variables['Labjobrun'], 'true')
+    jobs:
+      - job: CreateTerraformResourceGroupfortfstatelab
+        continueOnError: false
+        timeoutInMinutes: '30'
+        
+        steps:
+          - checkout: self
+            submodules: true
+          - task: AzureCLI@2
+            inputs:
+              azureSubscription: 'WTW-CRBCFT-LAB (be25e0a8-8003-489b-acf4-9f6cbf95a8a5)'
+              scriptType: 'ps'
+              scriptLocation: 'inlineScript'
+              inlineScript: |
+                az group create --location ukwest --resource-group TERRAFORM-DR-RG --tags 'AppID=005132'
+              powerShellErrorActionPreference: 'continue'
+            
+          - task: AzureResourceManagerTemplateDeployment@3
+            inputs:
+                deploymentScope: 'Resource Group'
+                azureResourceManagerConnection: 'WTW-CRBCFT-LAB (be25e0a8-8003-489b-acf4-9f6cbf95a8a5)'
+                subscriptionId: 'be25e0a8-8003-489b-acf4-9f6cbf95a8a5'
+                action: 'Create Or Update Resource Group'
+                resourceGroupName: 'TERRAFORM-DR-RG'
+                location: 'UK West'
+                templateLocation: 'Linked artifact'
+                csmFile: 'Terraform-RG-ST-Con/Terraformcontainer/storagecontainertemplatelab.json'
+                csmParametersFile: 'Terraform-RG-ST-Con/Terraformcontainer/storagecontainerparameterslab.json'
+                deploymentMode: 'Incremental'
+                displayName: Add Terraform Storage Container for tfstate files
+
