@@ -1,0 +1,46 @@
+# trigger: none
+# pool:
+#   name: Hosted Ubuntu 1604
+
+# resources:
+#   repositories:
+#   - repository: common
+#     type: git
+#     name: "Terraform Shared Services"
+
+# variables:
+# - group: Credentials
+#   # Pipeline Variables
+# - name: SUBSCRIPTION_NAME
+#   value: 'Shared Services Non-Production'
+
+# steps:
+#   - script: |
+#       # Export Variables Name
+#       export SUBSCRIPTION_NAME=$(SUBSCRIPTION_NAME)
+
+#       # Login to Azure Subscription
+#       echo "Logging in to Azure Subscription"
+#       az login --service-principal --username $(prdSsDeploymentSpnAppId) --password $(prdSsDeploymentSpnClientSecret) --tenant "96f1f6e9-1057-4117-ac28-80cdfe86f8c3" > /dev/null
+#       az account set --subscription "$(SUBSCRIPTION_NAME)"
+#       echo "Logged in to Azure Subscription successfully"
+
+#       # Change to Correct Environment Deployment
+#       cd $(System.DefaultWorkingDirectory)/deployments/non_prod
+
+#       # Set Terraform Environment Variables
+#       export ARM_CLIENT_ID=$(prdSsDeploymentSpnAppId)
+#       export ARM_CLIENT_SECRET=$(prdSsDeploymentSpnClientSecret)
+#       export ARM_SUBSCRIPTION_ID=$(az account show --query id | sed -e 's/^"//' -e 's/"$//')
+#       export ARM_TENANT_ID=$(az account show --query tenantId | sed -e 's/^"//' -e 's/"$//')
+
+#       # Deploy Terraform Solution
+#       echo
+#       echo "Initialising Terraform Deployment"
+#       terraform init
+#       echo
+#       echo "Deploying Shared Services Non-Production Resources"
+#       terraform apply --auto-approve
+#       echo
+#       echo "Terraform Deployment Complete"
+#     displayName: 'Terraform Deploy'
